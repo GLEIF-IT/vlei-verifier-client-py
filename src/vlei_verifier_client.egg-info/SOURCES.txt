@@ -1,0 +1,11 @@
+LICENSE
+README.md
+setup.py
+src/__init__.py
+src/client.py
+src/utils.py
+src/vlei_verifier_client.egg-info/PKG-INFO
+src/vlei_verifier_client.egg-info/SOURCES.txt
+src/vlei_verifier_client.egg-info/dependency_links.txt
+src/vlei_verifier_client.egg-info/requires.txt
+src/vlei_verifier_client.egg-info/top_level.txt
