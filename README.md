@@ -1,2 +1,8 @@
 # vlei-verifier-client-py
-A python client for the vlei-verifier
+
+Python client for vlei-verifier.
+
+## Installation
+
+```bash
+pip install vlei-verifier-client
