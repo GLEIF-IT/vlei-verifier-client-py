@@ -2,8 +2,9 @@ import json
 import logging
 import requests
 import sys
+from dataclasses import dataclass
 
-from src.utils import VerifierResponse
+
 
 # Create a logger object.
 logger = logging.getLogger(__name__)
@@ -13,7 +14,15 @@ handler = logging.StreamHandler(sys.stdout)
 logger.addHandler(handler)
 
 # Set the log level to include all messages.
+
 logger.setLevel(logging.DEBUG)
+
+
+@dataclass
+class VerifierResponse:
+    code: int
+    message: str
+    body: dict
 
 
 class _VerifierServiceAdapter:
