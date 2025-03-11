@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='vlei-verifier-client',
-    version='0.1.0',
+    version='0.1.1',
     author='Aidar Negimatzhanov',
     author_email='aydar.negimatzhanov@perfectart.com',
     description='Python client for vlei-verifier',
@@ -23,6 +23,6 @@ setup(
     python_requires='>=3.12',
     install_requires=[
         'requests',
-
+        'aiohttp'
     ],
 )
