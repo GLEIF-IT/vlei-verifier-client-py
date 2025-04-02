@@ -30,15 +30,16 @@ class _VerifierServiceAdapter:
 
         self.auths_url = f"{self.verifier_base_url}/authorizations/"
         self.presentations_url = f"{self.verifier_base_url}/presentations/"
+        self.presentations_history_url = f"{self.verifier_base_url}/presentations/history/"
         self.reports_url = f"{self.verifier_base_url}/reports/"
         self.verify_signed_headers_url = f"{self.verifier_base_url}/request/verify/"
         self.verify_signature_url = f"{self.verifier_base_url}/signature/verify/"
         self.add_rot_url = f"{self.verifier_base_url}/root_of_trust/"
 
-    def check_login_request(self, aid: str) -> requests.Response:
+    def check_login_request(self, aid: str, headers) -> requests.Response:
         logger.info(f"Check login request sent with: aid = {aid}")
         res = requests.get(
-            f"{self.auths_url}{aid}", headers={"Content-Type": "application/json"}
+            f"{self.auths_url}{aid}", headers={"Content-Type": "application/json", **headers}
         )
         logger.info(f"login status: {json.dumps(res.json())}")
         return res
@@ -51,6 +52,12 @@ class _VerifierServiceAdapter:
             data=vlei,
         )
         logger.info(f"Credential presentation response for said = {said}:  {json.dumps(res.json())}")
+        return res
+
+    def presentations_history_request(self, aid: str) -> requests.Response:
+        logger.info(f"Presentation history request sent with: aid = {aid}")
+        res = requests.get(f"{self.presentations_history_url}{aid}", headers={"Content-Type": "application/json"})
+        logger.info(f"Presentation history response for aid = {aid}:  {json.dumps(res.json())}")
         return res
 
     def verify_signed_headers_request(self, aid, sig, ser) -> requests.Response:
@@ -97,11 +104,11 @@ class _AsyncVerifierServiceAdapter:
         self.verify_signature_url = f"{self.verifier_base_url}/signature/verify/"
         self.add_rot_url = f"{self.verifier_base_url}/root_of_trust/"
 
-    async def check_login_request(self, aid: str) -> aiohttp.ClientResponse:
+    async def check_login_request(self, aid: str, headers) -> aiohttp.ClientResponse:
         logger.info(f"Check login request sent with: aid = {aid}")
         url = f"{self.auths_url}{aid}"
         async with aiohttp.ClientSession() as session:
-            async with session.get(url, headers={"Content-Type": "application/json"}) as response:
+            async with session.get(url, headers={"Content-Type": "application/json", **headers}) as response:
                 data = await response.json()
                 logger.info(f"login status: {json.dumps(data)}")
                 return response
@@ -113,6 +120,15 @@ class _AsyncVerifierServiceAdapter:
             async with session.put(url, headers={"Content-Type": "application/json+cesr"}, data=vlei) as response:
                 data = await response.json()
                 logger.info(f"Credential presentation response for said = {said}:  {json.dumps(data)}")
+                return response
+
+    async def presentations_history_request(self, aid: str) -> aiohttp.ClientResponse:
+        logger.info(f"Presentation history request sent with: aid = {aid}")
+        url = f"{self.verifier_base_url}{aid}"
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, headers={"Content-Type": "application/json"}) as response:
+                data = await response.json()
+                logger.info(f"Presentation history response for aid = {aid}:  {json.dumps(data)}")
                 return response
 
     async def verify_signed_headers_request(self, aid: str, sig: str, ser: str) -> aiohttp.ClientResponse:
@@ -177,19 +193,21 @@ class VerifierClient:
         self.verifier_base_url = verifier_base_url
         self.verifier_service_adapter = _VerifierServiceAdapter(self.verifier_base_url)
 
-    def check_login(self, aid: str) -> VerifierResponse:
+    def check_login(self, aid: str, headers: dict[str, str] = None) -> VerifierResponse:
         """
         Checks if the provided AID is logged in.
 
         Args:
             aid (str): AID to check.
+            headers: Signed headers.
 
         Returns:
             code: The response code from the Verifier service.
             body: The JSON response from the Verifier service.
             message: The response message from the Verifier service.
         """
-        res = self.verifier_service_adapter.check_login_request(aid)
+        headers = headers or {}
+        res = self.verifier_service_adapter.check_login_request(aid, headers)
         response = VerifierResponse(
             code=res.status_code,
             body=res.json(),
@@ -211,6 +229,15 @@ class VerifierClient:
             message: The response message from the Verifier service.
         """
         res = self.verifier_service_adapter.credential_presentation_request(said, vlei)
+        response = VerifierResponse(
+            code=res.status_code,
+            body=res.json(),
+            message=res.json()["msg"],
+        )
+        return response
+
+    def get_presentations_history(self, aid: str) -> VerifierResponse:
+        res = self.verifier_service_adapter.presentations_history_request(aid)
         response = VerifierResponse(
             code=res.status_code,
             body=res.json(),
@@ -305,19 +332,21 @@ class AsyncVerifierClient:
         self.verifier_base_url = verifier_base_url
         self.verifier_service_adapter = _AsyncVerifierServiceAdapter(self.verifier_base_url)
 
-    async def check_login(self, aid: str) -> VerifierResponse:
+    async def check_login(self, aid: str, headers: dict[str, str] = None) -> VerifierResponse:
         """
         Asynchronously checks if the provided AID is logged in.
 
         Args:
             aid (str): AID to check.
+            headers: Signed headers.
 
         Returns:
             code: The response code from the Verifier service.
             body: The JSON response from the Verifier service.
             message: The response message from the Verifier service.
         """
-        res = await self.verifier_service_adapter.check_login_request(aid)
+        headers = headers or {}
+        res = await self.verifier_service_adapter.check_login_request(aid, headers)
         data = await res.json()
         return VerifierResponse(
             code=res.status,
@@ -339,6 +368,15 @@ class AsyncVerifierClient:
             message: The response message from the Verifier service.
         """
         res = await self.verifier_service_adapter.credential_presentation_request(said, vlei)
+        data = await res.json()
+        return VerifierResponse(
+            code=res.status,
+            body=data,
+            message=data["msg"],
+        )
+
+    async def get_presentations_history(self, aid) -> VerifierResponse:
+        res = await self.verifier_service_adapter.presentations_history_request(aid)
         data = await res.json()
         return VerifierResponse(
             code=res.status,

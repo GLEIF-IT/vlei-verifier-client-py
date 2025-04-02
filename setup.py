@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='vlei-verifier-client',
-    version='0.1.1',
+    version='0.1.2',
     author='Aidar Negimatzhanov',
     author_email='aydar.negimatzhanov@perfectart.com',
     description='Python client for vlei-verifier',
