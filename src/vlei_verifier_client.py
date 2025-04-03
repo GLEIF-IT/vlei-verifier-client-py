@@ -331,7 +331,7 @@ class AsyncVerifierClient:
         self.verifier_base_url = verifier_base_url
         self.verifier_service_adapter = _AsyncVerifierServiceAdapter(self.verifier_base_url)
 
-    async def check_login(self, aid: str, headers: dict[str, str] = None) -> VerifierResponse:
+    async def authorization(self, aid: str, headers: dict[str, str] = None) -> VerifierResponse:
         """
         Asynchronously checks if the provided AID is logged in.
 
@@ -345,7 +345,7 @@ class AsyncVerifierClient:
             message: The response message from the Verifier service.
         """
         headers = headers or {}
-        res = await self.verifier_service_adapter.check_login_request(aid, headers)
+        res = await self.verifier_service_adapter.authorization_request(aid, headers)
         data = await res.json()
         return VerifierResponse(
             code=res.status,
@@ -353,7 +353,7 @@ class AsyncVerifierClient:
             message=data["msg"],
         )
 
-    async def login(self, said: str, vlei: str) -> VerifierResponse:
+    async def presentation(self, said: str, vlei: str) -> VerifierResponse:
         """
         Asynchronously submits a credential presentation request to log in using vLEI credentials.
 
@@ -366,7 +366,7 @@ class AsyncVerifierClient:
             body: The JSON response from the Verifier service.
             message: The response message from the Verifier service.
         """
-        res = await self.verifier_service_adapter.credential_presentation_request(said, vlei)
+        res = await self.verifier_service_adapter.presentation_request(said, vlei)
         data = await res.json()
         return VerifierResponse(
             code=res.status,
