@@ -3,7 +3,6 @@ import logging
 import sys
 from dataclasses import dataclass
 import aiohttp
-import asyncio
 import requests
 
 # Create a logger object.
@@ -36,22 +35,22 @@ class _VerifierServiceAdapter:
         self.verify_signature_url = f"{self.verifier_base_url}/signature/verify/"
         self.add_rot_url = f"{self.verifier_base_url}/root_of_trust/"
 
-    def check_login_request(self, aid: str, headers) -> requests.Response:
-        logger.info(f"Check login request sent with: aid = {aid}")
+    def authorization_request(self, aid: str, headers) -> requests.Response:
+        logger.info(f"Authorization request sent with: aid = {aid}")
         res = requests.get(
             f"{self.auths_url}{aid}", headers={"Content-Type": "application/json", **headers}
         )
-        logger.info(f"login status: {json.dumps(res.json())}")
+        logger.info(f"Authorization status: {json.dumps(res.json())}")
         return res
 
-    def credential_presentation_request(self, said: str, vlei: str) -> requests.Response:
-        logger.info(f"Credential presentation request sent with: said = {said}")
+    def presentation_request(self, said: str, vlei: str) -> requests.Response:
+        logger.info(f"Presentation request sent with: said = {said}")
         res = requests.put(
             f"{self.presentations_url}{said}",
             headers={"Content-Type": "application/json+cesr"},
             data=vlei,
         )
-        logger.info(f"Credential presentation response for said = {said}:  {json.dumps(res.json())}")
+        logger.info(f"Presentation response for said = {said}:  {json.dumps(res.json())}")
         return res
 
     def presentations_history_request(self, aid: str) -> requests.Response:
@@ -104,22 +103,22 @@ class _AsyncVerifierServiceAdapter:
         self.verify_signature_url = f"{self.verifier_base_url}/signature/verify/"
         self.add_rot_url = f"{self.verifier_base_url}/root_of_trust/"
 
-    async def check_login_request(self, aid: str, headers) -> aiohttp.ClientResponse:
-        logger.info(f"Check login request sent with: aid = {aid}")
+    async def authorization_request(self, aid: str, headers) -> aiohttp.ClientResponse:
+        logger.info(f"Authorization request sent with: aid = {aid}")
         url = f"{self.auths_url}{aid}"
         async with aiohttp.ClientSession() as session:
             async with session.get(url, headers={"Content-Type": "application/json", **headers}) as response:
                 data = await response.json()
-                logger.info(f"login status: {json.dumps(data)}")
+                logger.info(f"Authorization status: {json.dumps(data)}")
                 return response
 
-    async def credential_presentation_request(self, said: str, vlei: str) -> aiohttp.ClientResponse:
-        logger.info(f"Credential presentation request sent with: said = {said}")
+    async def presentation_request(self, said: str, vlei: str) -> aiohttp.ClientResponse:
+        logger.info(f"Presentation request sent with: said = {said}")
         url = f"{self.presentations_url}{said}"
         async with aiohttp.ClientSession() as session:
             async with session.put(url, headers={"Content-Type": "application/json+cesr"}, data=vlei) as response:
                 data = await response.json()
-                logger.info(f"Credential presentation response for said = {said}:  {json.dumps(data)}")
+                logger.info(f"Presentation response for said = {said}:  {json.dumps(data)}")
                 return response
 
     async def presentations_history_request(self, aid: str) -> aiohttp.ClientResponse:
@@ -193,9 +192,9 @@ class VerifierClient:
         self.verifier_base_url = verifier_base_url
         self.verifier_service_adapter = _VerifierServiceAdapter(self.verifier_base_url)
 
-    def check_login(self, aid: str, headers: dict[str, str] = None) -> VerifierResponse:
+    def authorization(self, aid: str, headers: dict[str, str] = None) -> VerifierResponse:
         """
-        Checks if the provided AID is logged in.
+        Checks if the provided AID is authorized.
 
         Args:
             aid (str): AID to check.
@@ -207,7 +206,7 @@ class VerifierClient:
             message: The response message from the Verifier service.
         """
         headers = headers or {}
-        res = self.verifier_service_adapter.check_login_request(aid, headers)
+        res = self.verifier_service_adapter.authorization_request(aid, headers)
         response = VerifierResponse(
             code=res.status_code,
             body=res.json(),
@@ -215,9 +214,9 @@ class VerifierClient:
         )
         return response
 
-    def login(self, said: str, vlei: str) -> VerifierResponse:
+    def presentation(self, said: str, vlei: str) -> VerifierResponse:
         """
-        Submits a credential presentation request to log in using vLEI credentials.
+        Submits a presentation request to log in using vLEI credentials.
 
         Args:
             said (str): SAID of the credential.
@@ -228,7 +227,7 @@ class VerifierClient:
             body: The JSON response from the Verifier service.
             message: The response message from the Verifier service.
         """
-        res = self.verifier_service_adapter.credential_presentation_request(said, vlei)
+        res = self.verifier_service_adapter.presentation_request(said, vlei)
         response = VerifierResponse(
             code=res.status_code,
             body=res.json(),
